@@ -13,9 +13,9 @@ SillyTavern 原生只有两条图片通道：
 
 角色立绘、世界观场景图通常是**以 URL 插在消息正文里**的（`![](https://...)` 或 `<img src="...">`），ComfyUI 那侧拿不到 —— 浏览器缓存是 blob，ComfyUI 进程读不到；SillyTavern 也不给聊天外链图落盘。
 
-本扩展在 `fetch` 层拦下 SillyTavern 发往 `/api/sd/comfy/generate` 的生图请求，把工作流里的 `"%scene_image%"` 替换成：
+本扩展在 `fetch` 层拦下 SillyTavern 发往 `/api/sd/comfy/generate` 的生图请求，把工作流里的 `"%scene_image%"` 替换成消息里的图片：
 
-1. 聊天记录里**最新一张够大的图**（`.mes_text img`，边长 < `128` 的忽略）；
+1. 按设置抓指定消息里的图（**默认开场消息 `#0`**，可改为「最新一条」或「指定编号」）；
 2. 抓不到 → 退回**角色卡头像**；
 3. 再抓不到 → `1x1` 透明 PNG（保证 ComfyUI 不报错）。
 
@@ -49,22 +49,32 @@ SillyTavern 原生只有两条图片通道：
 
 > ⚠️ 占位符要**连双引号一起写**：`"%scene_image%"`。SillyTavern 的替换是字符串级的 `replaceAll('"%scene_image%"', ...)`，裸写 `%scene_image%` 不会被替换，ComfyUI 会直接把字面量当图片解码而报错。
 
-如果你之前用的是 `%char_avatar%`，把它换掉即可 —— 本扩展抓不到聊天图时会自动退回角色卡头像，所以行为只增不减。
+`%scene_image%` 不是 SillyTavern 认识的占位符，**在 Placeholders 面板里不会出现**（既不会变绿也不会变红），它只是本扩展和你的工作流之间的约定。工作流里其余的 `%model%`、`%prompt%` 等仍由 ST 原生处理。
+
+同一个工作流里可以**同时**用 `%char_avatar%` 和 `%scene_image%`，各接各的节点。例如：
+
+- FaceID 类节点接 `"%char_avatar%"`（`buffalo_l` 只认真人脸，头像更稳）
+- ACN Reference 类节点接 `"%scene_image%"`（立绘/场景图管构图）
 
 ## 使用
 
 Extensions 面板里的开关：
 
 - **启用** —— 总开关，关掉就完全不管生图请求。
-- **优先用聊天图** —— 关掉则直接用角色卡头像（行为和原生 `%char_avatar%` 一致）。
+- **用聊天图** —— 关掉则跳过消息、直接用角色卡头像（行为等同原生 `%char_avatar%`）。
+- **抓哪一条消息** —— 三选一：
+  - `开场消息（#0）` —— 默认，抓第一条消息里的图，适合把角色立绘放在开场白里
+  - `最新一条消息` —— 从后往前找第一条带图的消息
+  - `指定消息编号` —— 手动填 `mesid`，锁定某一条
 - **控制台调试日志** —— 排查时看 `[scene-image-comfy]` 开头的输出。
-- **最近抓取** —— 显示这次抓到的是哪张、多大，附带缩略图，方便确认没抓错。
+- **最近抓取** —— 显示这次抓的是第几条消息、多大，附带缩略图，方便确认没抓错。
 
 ## 注意
 
 - 只对 **ComfyUI** 后端生效（`/api/sd/comfy/generate`）。AUTOMATIC1111 / SD WebUI 后端走 `/api/sd/generate`，不在拦截范围内。
-- 抓图是「从后往前扫当前聊天 DOM」，所以**图必须已经显示在聊天里**（滚到过或加载过即可，`<img>` 节点在 DOM 里就行）。
-- 图片 URL 若是第三方站点，浏览器可能因 CORS 拒绝 `fetch`。这种图会抓取失败并自动退回头像。同源图片（SillyTavern 自己的 `/characters/`、`/user/files/` 等）没有这个问题。
+- 抓图是从**当前聊天的 DOM** 里读，所以目标消息必须在聊天记录里（滚到过或加载过即可，`<img>` 节点在 DOM 里就行）。开场消息一般一直在。
+- 图片 URL 若是第三方站点，浏览器可能因 CORS 拒绝 `fetch`。这种图会抓取失败并依次回退。同源图片（SillyTavern 自己的 `/characters/`、`/user/files/` 等）没有这个问题。
+- 边长小于 `128px` 的图会被忽略（避免抓到表情包 / 内联小图标）。
 - FaceID 类节点（`IPAdapterUnifiedLoaderFaceID` + `buffalo_l`）只认真人脸，二次元立绘常常检测不到。建议只用 ACN Reference（`style_fidelity` / `ref_weight`）那条支路，或把 FaceID 节点 bypass。
 
 ## 许可

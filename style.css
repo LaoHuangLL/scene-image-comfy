@@ -1,3 +1,22 @@
+.scene-image-comfy .sic-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.scene-image-comfy .sic-field > span {
+    flex: 0 0 auto;
+    font-size: 0.9em;
+    opacity: 0.85;
+}
+
+.scene-image-comfy .sic-field select,
+.scene-image-comfy .sic-field input[type="number"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .scene-image-comfy .sic-preview-row {
     display: flex;
     align-items: center;
