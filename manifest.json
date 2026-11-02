@@ -6,7 +6,7 @@
     "description": "点生图时自动抓取聊天里最新一张图片（角色立绘/场景图），转成 base64 注入 ComfyUI 工作流的 \"%scene_image%\" 占位符；抓不到时回退到角色卡头像。",
     "js": "index.js",
     "css": "style.css",
-    "loading_order": 999,
+    "loading_order": -1,
     "requires": [],
     "optional": [],
     "homePage": ""
